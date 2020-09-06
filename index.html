@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+	 <script src="webusb.js"></script>
+</head>
+<body>
+
+<h1>My First Web Page</h1>
+<p>My First Paragraph</p>
+
+<p id="demo"></p>
+<div>Device Info Product name <div id="info-product-name"></div>Manufacturer <div id="info-manufacturer"></div> Vendor ID <div id="info-vendor-id"></div> Product ID <div id="info-product-id"></div>
+<div id="info-"></div>
+</div>
+<div>Status: <div id="status"></div></div>
+<button id="request-permission">Request "serial" permission</button>
+<button id="usb-open">Open</button>
+<button id="usb-claim">ClaimInterface</button>
+<input style="display:inline;" id="in-claim" size=1 type="text" value="0"> 
+<button id="initialisation">Initialisation</button>
+<button id="usb-close">Close</button>
+<button id="usb-reset">Reset</button>
+
+<h1>CH341</h1>
+<button id="ch341-configure2">Config</button>
+<button id="ch341-set-baudrate">Set baudrate</button>
+<button id="ch341-ep1">EP1 Out 32</button><input style="display:inline;" id="ch341-ep1-in" size=32 type="text" value="0">
+<input style="display:inline;" id="ch341-ep2-out" size=32 type="text">
+<button id="ch341-bulkout">BulkOut</button>
+<script>
+
+
+let r;
+let port;
+
+function getBgColors (tab) {
+  // But for now, let's just make sure what we have so
+  // far is working as expected.
+  alert('The browser action was clicked! Yay!');
+}
+
+function setStatus(s){
+	document.getElementById("status").innerHTML=s;
+};
+
+function setInfo(n,v){
+	document.getElementById("info-"+n).innerHTML=v;
+};
+
+document.querySelector('#request-permission').onclick = function() {
+  serial.requestPort().then(selectedPort => {
+  	port = selectedPort;
+  	setInfo("product-name",port.device.productName);
+  	setInfo("manufacturer",port.device.manufacturer);
+  	setInfo("vendor-id",port.device.vendorId);
+  	setInfo("product-id",port.device.productId);
+  	console.log(port);	
+  	document.getElementById("status").innerHTML="Connected";
+  }).catch(error => {
+  	console.log(error);
+  })
+};
+
+document.querySelector('#initialisation').onclick = function(){
+  port.init();
+};
+
+document.querySelector("#usb-open").onclick = function(){
+	port.connect();
+  setStatus("Opened");
+	console.log("Open usb + "+ port.device.productName);
+};
+
+document.querySelector("#usb-claim").onclick = function(){
+  port.claim(document.getElementById("in-claim").value);
+  setStatus("Claimed Interface");
+  console.log("Claim Interface usb + "+ port.device.productName);
+};
+
+document.querySelector("#usb-reset").onclick = function(){
+  port.reset();
+  setStatus("Reset port");
+  console.log("Reset port");
+};
+
+document.querySelector("#ch341-configure2").onclick = function(){
+  r = port.CH341configure2();
+  setStatus("Configure2");
+  console.log("Configure2");
+};
+
+function str2ab(str) {
+  var buf = new ArrayBuffer(str.length); // 2 bytes for each char
+  var bufView = new Uint8Array(buf);
+  for (var i=0, strLen=str.length; i<strLen; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
+
+document.querySelector("#ch341-ep1").onclick = async() =>{
+  data = str2ab(document.getElementById("ch341-ep1-in").value);
+  console.log(data);
+  port.CH341readEP1(data);
+  setStatus("Endpoint 1");
+  console.log("Endpoint 1");
+};
+
+document.querySelector("#ch341-bulkout").onclick = async() =>{
+  //let r = await port.bulkOut(2);
+  let r = await port.bulkIn(2,1);
+  var u8 = new Uint8Array(r.data.buffer)
+  document.getElementById("ch341-ep2-out").value = document.getElementById("ch341-ep2-out").value + String.fromCharCode(u8);
+  console.log(r);
+  setStatus("Bulkout");
+  console.log("Bulkout");
+};
+
+document.querySelector("#ch341-set-baudrate").onclick = async() => {
+  port.CH341setBaudrateLCR();
+  setStatus("Set baudrate");
+  console.log("Set baudrate");
+};
+
+</script>
+
+</body>
+</html>
